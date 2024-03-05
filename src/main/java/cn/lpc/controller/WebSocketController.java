@@ -30,7 +30,7 @@ import java.util.concurrent.ConcurrentHashMap;
 @ServerEndpoint(value = "/websocket/{nickname}")
 public class WebSocketController {
 
-    private  MessagesController messagesController;
+
 
     private Session session;
 

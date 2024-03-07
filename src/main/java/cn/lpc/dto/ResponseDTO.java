@@ -1,6 +1,6 @@
 package cn.lpc.dto;
 
-import com.yjq.programmer.bean.CodeMsg;
+import cn.lpc.bean.CodeMsg;
 
 
 /**

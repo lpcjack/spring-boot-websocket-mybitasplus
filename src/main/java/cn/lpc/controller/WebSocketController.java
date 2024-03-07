@@ -31,6 +31,10 @@ import java.util.concurrent.ConcurrentHashMap;
 public class WebSocketController {
 
 
+    /**
+     * 用于聊天传输
+     */
+
 
     private Session session;
 

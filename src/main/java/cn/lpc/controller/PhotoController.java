@@ -1,6 +1,7 @@
 package cn.lpc.controller;
 
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RestController;
@@ -11,6 +12,7 @@ import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 
 @RestController
+@CrossOrigin(origins = "http://localhost:5173")
 public class PhotoController {
     @Value("${file.upload-path}")
     private String imgUrl;
@@ -18,6 +20,7 @@ public class PhotoController {
     @PostMapping("/upload")
     public String returnImg(@RequestBody MultipartFile file){
         String originalFilename = file.getOriginalFilename();
+        System.out.println(originalFilename);
         int index = 0;
         if (originalFilename != null) {
             index = originalFilename.indexOf(".");

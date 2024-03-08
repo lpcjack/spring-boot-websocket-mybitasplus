@@ -30,7 +30,7 @@ public class PhotoController {
     @Autowired
     private ResourceLoader resourceLoader;
 
-    @Value("${yjq.upload.file.path}")
+    @Value("${lpc.upload.file.path}")
     private String uploadPhotoPath;//文件保存位置
 
     private static final Logger logger = LoggerFactory.getLogger(PhotoController.class);

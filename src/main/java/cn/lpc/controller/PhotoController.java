@@ -1,6 +1,7 @@
 package cn.lpc.controller;
 
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -16,12 +17,12 @@ public class PhotoController {
     private String imgUrl;
 
     @PostMapping("/upload")
-    public String returnImg(@RequestParam("file") MultipartFile file){
+    public ResponseEntity<String> uploadImage(@RequestParam("file") MultipartFile file){
         String originalFilename = file.getOriginalFilename();
         if (originalFilename == null) {
             // 文件名为空，输出日志并返回失败
             System.out.println("文件名为空");
-            return "failure";
+            return ResponseEntity.badRequest().body("文件名为空");
         }
 
         int index = originalFilename.lastIndexOf(".");
@@ -31,11 +32,12 @@ public class PhotoController {
         try {
             // 将文件保存到指定目录
             file.transferTo(new File(imgUrl + newFileName));
-            return "success";
+            String imagePath = "http://localhost:8080/static/" + newFileName;
+            return ResponseEntity.ok(imagePath);
         } catch (Exception e) {
             // 捕获异常并输出日志
             e.printStackTrace();
-            return "failure";
+            return ResponseEntity.status(500).body("图片上传失败");
         }
     }
 }

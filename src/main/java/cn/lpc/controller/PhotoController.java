@@ -16,26 +16,26 @@ public class PhotoController {
     private String imgUrl;
 
     @PostMapping("/upload")
-    public String returnImg(@RequestBody MultipartFile file){
+    public String returnImg(@RequestParam("file") MultipartFile file){
         String originalFilename = file.getOriginalFilename();
-        System.out.println(originalFilename);
-        int index = 0;
-        if (originalFilename != null) {
-            index = originalFilename.indexOf(".");
+        if (originalFilename == null) {
+            // 文件名为空，输出日志并返回失败
+            System.out.println("文件名为空");
+            return "failure";
         }
-        String formatFileName = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd-HH-mm")).toString();
-        String newFileName = null;
-        if (originalFilename != null) {
-            newFileName = formatFileName + originalFilename.substring(index);
-        }
+
+        int index = originalFilename.lastIndexOf(".");
+        String formatFileName = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd-HH-mm"));
+        String newFileName = formatFileName + originalFilename.substring(index);
+
         try {
-            //将文件保存指定目录
+            // 将文件保存到指定目录
             file.transferTo(new File(imgUrl + newFileName));
             return "success";
         } catch (Exception e) {
+            // 捕获异常并输出日志
             e.printStackTrace();
+            return "failure";
         }
-        return "failure";
-
     }
 }

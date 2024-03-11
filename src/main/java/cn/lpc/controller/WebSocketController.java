@@ -209,8 +209,9 @@ public class WebSocketController {
                     sendGroupMessage(groupsList.get(0).getGroupnickname(), nickname , message);
                 } else if("image".equals(messages.getType())){
                     sendP2PMessage(messages.getReceiveNickname(), message);
-                }
-                else {
+                } else if ("file".equals(messages.getType())) {
+                    sendP2PMessage(messages.getReceiveNickname() , message);
+                } else {
                     log.info("没有这种聊天类型");
                 }
 

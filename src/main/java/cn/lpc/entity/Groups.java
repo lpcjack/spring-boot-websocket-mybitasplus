@@ -13,6 +13,7 @@ public class Groups {
     /**
      * 群聊id
      */
+    private Integer groupid;
     /**
      * 群聊名称
      */

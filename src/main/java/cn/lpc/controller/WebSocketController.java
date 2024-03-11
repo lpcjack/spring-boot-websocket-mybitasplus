@@ -32,24 +32,60 @@ public class WebSocketController {
 
 
     /**
-     * 用于聊天传输
+     *会话
      */
-
-
     private Session session;
 
 
     /**
      * 好友列表
      */
+    //存储好友信息
     public static List<Friends> friendsList = new ArrayList<>();
 
-    //***************************************************
     /**
      * 群聊列表
      */
+    //存储群聊信息
     public static List<Groups> groupsList = new ArrayList<>();
+
     private static ConcurrentHashMap<String, ConcurrentHashMap<String, WebSocketController>> groupChats = new ConcurrentHashMap<>();
+
+    //创建群组
+    private static void createGroup(String groupnickname){
+        //群聊成员
+        ConcurrentHashMap<String,WebSocketController> groupMembers = new ConcurrentHashMap<>();
+        //添加成员
+        groupChats.put(groupnickname , groupMembers);
+
+        log.info("群聊"+groupnickname+"创建成功！！！！");
+
+    }
+
+    //加入群聊
+    public static void joinGroup(String groupNickname, String username, WebSocketController controller) {
+        ConcurrentHashMap<String, WebSocketController> groupMembers = groupChats.get(groupNickname);
+        if (groupMembers != null) {
+            groupMembers.put(username, controller);
+            System.out.println(username + " 加入群聊 '" + groupNickname + "'");
+        } else {
+            System.out.println("群聊 '" + groupNickname + "' 不存在！");
+        }
+    }
+
+    // 获取群聊成员列表
+    public static void getGroupMembers(String groupNickname) {
+        ConcurrentHashMap<String, WebSocketController> groupMembers = groupChats.get(groupNickname);
+        if (groupMembers != null) {
+            System.out.println("群聊 '" + groupNickname + "' 成员列表：");
+            for (String username : groupMembers.keySet()) {
+                System.out.println("- " + username);
+            }
+        } else {
+            System.out.println("群聊 '" + groupNickname + "' 不存在！");
+        }
+    }
+
     public static void joinGroupChat(String nickname, WebSocketController session, String groupName) {
         // 获取或创建群组
         groupChats.computeIfAbsent(groupName, k -> new ConcurrentHashMap<>());

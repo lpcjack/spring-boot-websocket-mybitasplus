@@ -27,7 +27,7 @@ public class FileUploadController {
 
         String originalFilename = file.getOriginalFilename();
         int index = originalFilename.lastIndexOf(".");
-        String formatFileName = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd-HH-mm"));
+        String formatFileName = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd-HH-mm-ss"));
         String newFileName = formatFileName + originalFilename.substring(index);
 
         try {

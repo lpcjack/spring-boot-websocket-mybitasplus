@@ -4,6 +4,8 @@ import cn.lpc.entity.Friends;
 import cn.lpc.entity.Groups;
 import cn.lpc.entity.Messages;
 import com.alibaba.fastjson.JSON;
+import com.alibaba.fastjson.JSONArray;
+import com.alibaba.fastjson.JSONObject;
 import lombok.Synchronized;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -52,14 +54,19 @@ public class WebSocketController {
     private static ConcurrentHashMap<String, ConcurrentHashMap<String, WebSocketController>> groupChats = new ConcurrentHashMap<>();
 
     //创建群组
-    private static void createGroup(String groupnickname){
-        //群聊成员
-        ConcurrentHashMap<String,WebSocketController> groupMembers = new ConcurrentHashMap<>();
-        //添加成员
-        groupChats.put(groupnickname , groupMembers);
 
-        log.info("群聊"+groupnickname+"创建成功！！！！");
-
+    // 创建群聊
+    public static void createGroup(String groupNickname , JSONArray members) {
+        //存储群名和群成员
+        ConcurrentHashMap<String, WebSocketController> groupMembers = new ConcurrentHashMap<>();
+        // 将成员列表添加到群组成员列表中
+        for (int i = 0; i < members.size(); i++) {
+            String memberName = members.getString(i);
+            // 在这里可以添加成员到群组中，例如：
+            groupMembers.put(memberName, new WebSocketController());
+        }
+        groupChats.put(groupNickname, groupMembers);
+        System.out.println("群聊 '" + groupNickname + "' 创建成功！");
     }
 
     //加入群聊
@@ -248,7 +255,20 @@ public class WebSocketController {
                 } else if ("file".equals(messages.getType())) {
                     sendP2PMessage(messages.getReceiveNickname() , message);
                 } else if ("creategroup".equals(messages.getType())) {
-                    log.info(messages.getGroupnickname());
+                    JSONObject jsonObject = JSON.parseObject(message);
+                    String groupname = jsonObject.getString("groupName");
+                    groupsList.add(Groups.builder().groupnickname(groupname).build());
+                    JSONArray members = jsonObject.getJSONArray("message");
+                    createGroup(groupname,members);
+
+
+                    for (int i = 0;i<members.size();i++){
+                        log.info(members.getString(i));
+                    }
+
+                    groupsList.forEach(groups -> {
+                        log.info(groups.getGroupnickname());
+                    });
 
                 } else {
                     log.info("没有这种聊天类型");

@@ -248,7 +248,8 @@ public class WebSocketController {
                 } else if ("file".equals(messages.getType())) {
                     sendP2PMessage(messages.getReceiveNickname() , message);
                 } else if ("creategroup".equals(messages.getType())) {
-                    log.info("我要创建群聊了！！！");
+                    log.info(messages.getGroupnickname());
+
                 } else {
                     log.info("没有这种聊天类型");
                 }

@@ -51,6 +51,9 @@ public class WebSocketController {
     //存储群聊信息
     public static List<Groups> groupsList = new ArrayList<>();
 
+    /**
+     *存储群名与群成员对应关系
+     */
     private static ConcurrentHashMap<String, ConcurrentHashMap<String, WebSocketController>> groupChats = new ConcurrentHashMap<>();
 
     //创建群组
@@ -138,7 +141,10 @@ public class WebSocketController {
             //进入会话，表示登陆成功
 
             //*************************
-            groupsList.add(Groups.builder().groupnickname("打雷").build());
+//            groupsList.add(Groups.builder().groupnickname("打雷").build());
+            Groups groups = new Groups("打雷");
+            groupsList.add(0,groups);
+
             //*************************
             //测试群名
 //            log.info(groupsList.get(0).getGroupnickname());
@@ -241,10 +247,6 @@ public class WebSocketController {
                 // 消息内容转消息对象
                 Messages messages = JSON.parseObject(message, Messages.class);
 
-                //聊天记录存入数据库
-//                messagesController.Insert(messages.getSendNickname() , messages.getReceiveNickname() , messages.getMessages().toString() , messages.getType());
-
-                //
                 if("messages".equals(messages.getType())){
                     // 私聊发送消息
                     sendP2PMessage(messages.getReceiveNickname(), message);
@@ -262,13 +264,18 @@ public class WebSocketController {
                     createGroup(groupname,members);
 
 
-                    for (int i = 0;i<members.size();i++){
-                        log.info(members.getString(i));
+
+
+
+
+//                    for (int i = 0;i<members.size();i++){
+//                        log.info(members.getString(i));
+//                    }
+                    for (int i = 0 ; i<groupsList.size();i++){
+                        log.info("第"+(i+1)+"个群聊的名字叫"+groupsList.get(i));
                     }
 
-                    groupsList.forEach(groups -> {
-                        log.info(groups.getGroupnickname());
-                    });
+
 
                 } else {
                     log.info("没有这种聊天类型");

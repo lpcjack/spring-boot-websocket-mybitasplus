@@ -15,6 +15,13 @@
     </properties>
     <dependencies>
 
+<!--        敏感词过滤-->
+        <!-- 敏感词工具包 -->
+        <dependency>
+            <groupId>com.github.houbb</groupId>
+            <artifactId>sensitive-word</artifactId>
+            <version>0.13.1</version>
+        </dependency>
 
         <dependency>
             <groupId>com.baomidou</groupId>

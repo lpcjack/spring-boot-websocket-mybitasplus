@@ -3,10 +3,14 @@ package cn.lpc.controller;
 import cn.lpc.entity.Friends;
 import cn.lpc.entity.Groups;
 import cn.lpc.entity.Messages;
+import cn.lpc.entity.UserMessage;
+import cn.lpc.service.UserMessageService;
 import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONArray;
 import com.alibaba.fastjson.JSONObject;
 import com.baomidou.mybatisplus.core.toolkit.Assert;
+import com.github.houbb.sensitive.word.core.SensitiveWord;
+import com.github.houbb.sensitive.word.core.SensitiveWordHelper;
 import lombok.Synchronized;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -23,6 +27,7 @@ import javax.websocket.server.PathParam;
 import javax.websocket.server.ServerEndpoint;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
@@ -32,6 +37,26 @@ import java.util.concurrent.ConcurrentHashMap;
 @Component
 @ServerEndpoint(value = "/websocket/{nickname}")
 public class WebSocketController {
+
+    private SensitiveWord sensitiveWord;
+
+    private SensitiveWordHelper sensitiveWordHelper;
+
+    /**
+     * 创建一个缓存
+     */
+    private static UserMessageService userMessageService;
+    private static final Integer LIST_SIZE = 3;
+    private static ArrayList<UserMessage> MessageList = new ArrayList<>();
+    @Autowired
+    public void setOgLocationService(UserMessageService userMessageService) {
+        WebSocketController.userMessageService = userMessageService;
+    }
+
+    /**
+     * 存储离线信息
+     */
+    private static ConcurrentHashMap<String, List<Messages>> offlineMessageMap  = new ConcurrentHashMap<>();
 
 
     /**
@@ -179,6 +204,22 @@ public class WebSocketController {
 
 
             log.info("【WebSocket消息】有新的连接[{}], 连接总数:{}", nickname, webSocketSession.size());
+
+            //************
+            if (offlineMessageMap.containsKey(nickname)){
+                List<Messages> list = offlineMessageMap.get(nickname);
+                for (Messages message : list) {
+                    // 离线消息接收成功后删除消息
+                     String result = sendP2PChatMessage(message.getReceiveNickname(),JSON.toJSONString(message));
+                    if ("ok".equals(result)) {
+                        System.out.println("发送消息成功！！！从队列中删除离线消息" + message);
+                        list.remove(message); // 删除当前消息
+                    }
+                }
+                offlineMessageMap.remove(nickname);
+            }
+
+            //************
         }
 
     }
@@ -224,15 +265,7 @@ public class WebSocketController {
             // 发送消息
             sendP2PMessage(key, JSON.toJSONString(Messages.builder().type("update-group").receiveNickname(key).messages(friends).groupnickname("打雷").build()));
         });
-//        groupChats.forEach((key , val) -> {
-//            List<Groups> groups = new ArrayList<>();
-//            groupsList.forEach((groups1) -> {
-//                groups.add(groups1);
-//            });
-//            val.forEach((key1 , val1) -> {
-//                sendP2PMessage(key1,JSON.toJSONString(Messages.builder().type("update-group").receiveNickname(key1).messages(groups).build()));
-//            });
-//        });
+
     }
     //**************************************************
 
@@ -248,15 +281,75 @@ public class WebSocketController {
                 // 消息内容转消息对象
                 Messages messages = JSON.parseObject(message, Messages.class);
 
+
                 if("messages".equals(messages.getType())){
                     // 私聊发送消息
-                    sendP2PMessage(messages.getReceiveNickname(), message);
+                    //敏感词过滤
+                    String txt = messages.getMessages().toString();
+                    String result = SensitiveWordHelper.replace(txt);
+                    messages.setMessages(result);
+                    log.info(messages.getMessages().toString());
+                    String updatemessage = JSON.toJSONString(messages);
+
+
+                    sendP2PChatMessage(messages.getReceiveNickname(), updatemessage);
+
+                    //*******************
+
+                    UserMessage userMessage = new UserMessage();
+                    userMessage.setMessageType(messages.getType());
+                    userMessage.setSender(messages.getSendNickname());
+                    userMessage.setReceiver(messages.getReceiveNickname());
+                    userMessage.setMessage(messages.getMessages().toString());
+                    userMessage.setSendtime(new Date());
+                    //存入消息列表
+                    MessageList.add(userMessage);
+                    //判断是否达到指定长度
+                    if(MessageList.size() == LIST_SIZE){
+                        userMessageService.saveBatch(MessageList);
+                        MessageList.clear();
+
+                    }
+
+                    System.out.println(MessageList.size());
+
+                    //*******************
                 } else if ("group-message".equals(messages.getType())) {
                     sendGroupMessage(groupsList.get(0).getGroupnickname(), nickname , message);
                 } else if("image".equals(messages.getType())){
-                    sendP2PMessage(messages.getReceiveNickname(), message);
+                    sendP2PChatMessage(messages.getReceiveNickname(), message);
+
+                    UserMessage userMessageImage = new UserMessage();
+                    userMessageImage.setMessageType(messages.getType());
+                    userMessageImage.setSender(messages.getSendNickname());
+                    userMessageImage.setReceiver(messages.getReceiveNickname());
+                    userMessageImage.setMessage(messages.getMessages().toString());
+                    userMessageImage.setSendtime(new Date());
+                    //存入消息列表
+                    MessageList.add(userMessageImage);
+                    //判断是否达到指定长度
+                    if(MessageList.size() == LIST_SIZE){
+                        userMessageService.saveBatch(MessageList);
+                        MessageList.clear();
+
+                    }
                 } else if ("file".equals(messages.getType())) {
-                    sendP2PMessage(messages.getReceiveNickname() , message);
+                    sendP2PChatMessage(messages.getReceiveNickname() , message);
+
+                    UserMessage userMessageFile = new UserMessage();
+                    userMessageFile.setMessageType(messages.getType());
+                    userMessageFile.setSender(messages.getSendNickname());
+                    userMessageFile.setReceiver(messages.getReceiveNickname());
+                    userMessageFile.setMessage(messages.getMessages().toString());
+                    userMessageFile.setSendtime(new Date());
+                    //存入消息列表
+                    MessageList.add(userMessageFile);
+                    //判断是否达到指定长度
+                    if(MessageList.size() == LIST_SIZE){
+                        userMessageService.saveBatch(MessageList);
+                        MessageList.clear();
+
+                    }
                 } else if ("creategroup".equals(messages.getType())) {
                     JSONObject jsonObject = JSON.parseObject(message);
                     String groupname = jsonObject.getString("groupName");
@@ -290,6 +383,12 @@ public class WebSocketController {
 
     @OnClose
     public void onClose(@PathParam(value = "nickname") String nickname) {
+
+        //如果列表里边还有信息
+        if (MessageList.size() < LIST_SIZE){
+            userMessageService.saveBatch(MessageList);
+        }
+
         friendsList.remove(friendsList.stream().filter((friends -> friends.getNickname().equals(nickname))).findAny().orElse(null));
         groupsList.remove(groupsList.stream().filter((groups -> groups.getGroupnickname().equals("打雷"))).findAny().orElse(null));
         webSocketSession.remove(nickname);
@@ -303,35 +402,38 @@ public class WebSocketController {
     /**
      * 点对点发送
      */
-    public static synchronized void sendP2PMessage(String nickname, String message) {
+    //原来是void
+    public static synchronized String sendP2PChatMessage(String nickname, String message) {
+        Messages messages = JSON.parseObject(message , Messages.class);
         log.info("【WebSocket消息】点对点发送消息, nickname={} , message={}", nickname, message);
-        try {
-            webSocketSession.get(nickname).session.getBasicRemote().sendText(message);
-        } catch (IOException e) {
-            log.error("点对点发送异常:", e);
+        WebSocketController webSocketController = webSocketSession.get(messages.getReceiveNickname());
+        if (webSocketController.session == null || !webSocketController.session.isOpen()){
+            if (offlineMessageMap.containsKey(messages.getReceiveNickname())){
+                List<Messages> list = offlineMessageMap.get(messages.getSendNickname());
+                list.add(messages);
+                offlineMessageMap.put(messages.getReceiveNickname(), list);
+            }else {
+                List<Messages> list1 = new ArrayList<>();
+                list1.add(messages);
+                offlineMessageMap.put(messages.getReceiveNickname(), list1);
+            }
+
+        }else{
+            try {
+                webSocketSession.get(nickname).session.getBasicRemote().sendText(message);
+                return "ok";
+            } catch (IOException e) {
+                log.error("点对点发送异常:", e);
+            }
         }
+        return "yes";
+
     }
 
     /**
      * 群聊
      */
 
-    // 发送群组消息
-//    public static void sendGroupMessage(String groupName, String senderNickname, String message) {
-//        ConcurrentHashMap<String, WebSocketController> groupMembers = groupChats.get(groupName);
-//        if (groupMembers != null) {
-//            groupMembers.forEach((key, val) -> {
-//                try {
-//                    webSocketSession.get(key).session.getBasicRemote().sendText(message);
-//                    log.info("【群聊消息】群发消息,groupname = {} sender = {} , message = {}", groupName, senderNickname, message);
-//                } catch (IOException e) {
-//                    log.error("发送消息给用户时发生错误：{}", key, e);
-//                }
-//            });
-//        } else {
-//            log.error("Group {} does not exist.", groupName);
-//        }
-//    }
     public static void sendGroupMessage(String groupName, String senderNickname, String message) {
         ConcurrentHashMap<String, WebSocketController> groupMembers = groupChats.get(groupName);
         if (groupMembers != null) {
@@ -347,6 +449,35 @@ public class WebSocketController {
             });
         } else {
             log.error("【群聊消息】群组 {} 不存在.", groupName);
+        }
+    }
+
+    /**
+     * 发送离线消息
+     */
+    public static synchronized String sendOfflineMessageByUser(String message){
+        Messages messages = JSON.parseObject(message, Messages.class);
+
+//        WebSocketController webSocketController = webSocketSession.get(messages.getReceiveNickname());
+
+        try {
+            webSocketSession.get(messages.getReceiveNickname()).session.getBasicRemote().sendText(message);
+            return "sucess";
+        }catch (IOException e){
+            log.error("离线发送发送异常:", e);
+        }
+        return "ok";
+    }
+
+    /**
+     * 点对点发送更新消息
+     */
+    public static synchronized void sendP2PMessage(String nickname, String message) {
+        log.info("【WebSocket消息】点对点发送消息, nickname={} , message={}", nickname, message);
+        try {
+            webSocketSession.get(nickname).session.getBasicRemote().sendText(message);
+        } catch (IOException e) {
+            log.error("点对点发送异常:", e);
         }
     }
 

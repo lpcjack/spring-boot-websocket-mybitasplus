@@ -210,9 +210,9 @@ public class WebSocketController {
                 List<Messages> list = offlineMessageMap.get(nickname);
                 for (Messages message : list) {
                     // 离线消息接收成功后删除消息
-                     String result = sendP2PChatMessage(message.getReceiveNickname(),JSON.toJSONString(message));
+                     String result = sendOfflineMessageByUser(JSON.toJSONString(message));
                     if ("ok".equals(result)) {
-                        System.out.println("发送消息成功！！！从队列中删除离线消息" + message);
+                       log.info("发送消息成功！！！从队列中删除离线消息" + message);
                         list.remove(message); // 删除当前消息
                     }
                 }
@@ -288,14 +288,16 @@ public class WebSocketController {
                     String txt = messages.getMessages().toString();
                     String result = SensitiveWordHelper.replace(txt);
                     messages.setMessages(result);
+
                     log.info(messages.getMessages().toString());
+
                     String updatemessage = JSON.toJSONString(messages);
 
 
                     sendP2PChatMessage(messages.getReceiveNickname(), updatemessage);
 
-                    //*******************
 
+                    //存储聊天记录
                     UserMessage userMessage = new UserMessage();
                     userMessage.setMessageType(messages.getType());
                     userMessage.setSender(messages.getSendNickname());
@@ -387,6 +389,7 @@ public class WebSocketController {
         //如果列表里边还有信息
         if (MessageList.size() < LIST_SIZE){
             userMessageService.saveBatch(MessageList);
+            MessageList.clear();
         }
 
         friendsList.remove(friendsList.stream().filter((friends -> friends.getNickname().equals(nickname))).findAny().orElse(null));
@@ -400,16 +403,18 @@ public class WebSocketController {
     }
 
     /**
-     * 点对点发送
+     * 点对点发送消息（聊天消息）
      */
     //原来是void
     public static synchronized String sendP2PChatMessage(String nickname, String message) {
         Messages messages = JSON.parseObject(message , Messages.class);
         log.info("【WebSocket消息】点对点发送消息, nickname={} , message={}", nickname, message);
+        //获取接收者在线状况
         WebSocketController webSocketController = webSocketSession.get(messages.getReceiveNickname());
-        if (webSocketController.session == null || !webSocketController.session.isOpen()){
+        //发送离线信息
+        if (webSocketController == null || !webSocketController.session.isOpen()){
             if (offlineMessageMap.containsKey(messages.getReceiveNickname())){
-                List<Messages> list = offlineMessageMap.get(messages.getSendNickname());
+                List<Messages> list = offlineMessageMap.get(messages.getReceiveNickname());
                 list.add(messages);
                 offlineMessageMap.put(messages.getReceiveNickname(), list);
             }else {
@@ -417,6 +422,7 @@ public class WebSocketController {
                 list1.add(messages);
                 offlineMessageMap.put(messages.getReceiveNickname(), list1);
             }
+            return "offline";
 
         }else{
             try {
@@ -424,9 +430,10 @@ public class WebSocketController {
                 return "ok";
             } catch (IOException e) {
                 log.error("点对点发送异常:", e);
+                return "error";
             }
         }
-        return "yes";
+
 
     }
 
@@ -453,7 +460,7 @@ public class WebSocketController {
     }
 
     /**
-     * 发送离线消息
+     * 发送离线消息（离线消息）
      */
     public static synchronized String sendOfflineMessageByUser(String message){
         Messages messages = JSON.parseObject(message, Messages.class);
@@ -470,7 +477,7 @@ public class WebSocketController {
     }
 
     /**
-     * 点对点发送更新消息
+     * 点对点发送更新消息（用于更新）
      */
     public static synchronized void sendP2PMessage(String nickname, String message) {
         log.info("【WebSocket消息】点对点发送消息, nickname={} , message={}", nickname, message);

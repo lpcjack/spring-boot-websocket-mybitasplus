@@ -1,6 +1,8 @@
 server:
   port: 8080
 spring:
+  application:
+    name: nginxDemo
   datasource:
     driver-class-name: com.mysql.cj.jdbc.Driver
     url: jdbc:mysql://localhost:3306/chat?serverTimezone=GMT%2B8
@@ -20,5 +22,7 @@ mybatis-plus:
 
 
 file:
-  upload-path: D:\idea document\InstantMessageUserInterfaceService\src\main\resources\static\
+#  upload-path: D:\idea document\InstantMessageUserInterfaceService\src\main\resources\static\
+  upload-path: D:\nginxstore\
+
 

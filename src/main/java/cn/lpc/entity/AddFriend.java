@@ -9,31 +9,22 @@ import lombok.NoArgsConstructor;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class Messages {
+public class AddFriend {
     /**
-     * 消息类型
+     * 类型
      */
     private String type;
     /**
-     * 发送好友昵称
+     * 请求者
      */
     private String sendNickname;
     /**
-     * 接收好友昵称
-     */
-    private String receiveNickname;
-    /**
-     * 消息内容
+     * 消息
      */
     private Object messages;
-    /**
-     * 所属群聊名
-     */
-    private String groupnickname;
 
     /**
-     * 存储群聊人数
+     * 状态
      */
-    private Object groupNumber;
-
+    private boolean status;
 }

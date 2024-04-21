@@ -9,9 +9,14 @@ import lombok.NoArgsConstructor;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class Groups {
+public class NotInGroup {
     /**
-     * 群聊名称
+     * 类型
      */
-    private String groupnickname;
+    private String type;
+
+    /**
+     * 传输的信息
+     */
+    private Object messages;
 }
